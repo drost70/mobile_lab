@@ -25,7 +25,8 @@ class ProfileScreen extends StatelessWidget {
               );
             },
           ),
-          ColoredBox(color: Colors.black.withValues(alpha: 0.3)),
+          // ignore: deprecated_member_use
+          ColoredBox(color: Colors.black.withOpacity(0.3)),
           const SafeArea(
             child: Center(
               child: Text(
