@@ -7,15 +7,14 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  // ignore: library_private_types_in_public_api
-  _HomeScreenState createState() => _HomeScreenState();
+  HomeScreenState createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class HomeScreenState extends State<HomeScreen> {
   final UserRepository _userRepository = LocalUserRepository();
   String _userName = 'Користувач';
   double _distance = 10;
-  double _temperature = 20; // Додаємо температуру
+  double _temperature = 20;
   String _lastUpdate = 'Ніколи';
 
   @override
@@ -26,7 +25,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
-    // Завантажуємо збережену відстань та температуру
     setState(() {
       _distance = prefs.getDouble('distance') ?? 10;
       _temperature = prefs.getDouble('temperature') ?? 20;
@@ -42,15 +40,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _logout() async {
-  Navigator.pushReplacementNamed(context, '/login');
+    Navigator.pushReplacementNamed(context, '/login');
   }
 
   Future<void> _updateDistance(double newDistance) async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _distance = newDistance;
-      // ignore: lines_longer_than_80_chars
-      _lastUpdate = 'Останнє оновлення: ${DateTime.now().toString()} \nВідстань: ${_distance.toStringAsFixed(2)} м\nТемпература: ${_temperature.toStringAsFixed(1)}°C';
+      _lastUpdate = 'Останнє оновлення: ${DateTime.now()}\n'
+          'Відстань: ${_distance.toStringAsFixed(2)} м\n'
+          'Температура: ${_temperature.toStringAsFixed(1)}°C';
     });
     await prefs.setDouble('distance', _distance);
     await prefs.setString('lastUpdate', _lastUpdate);
@@ -60,8 +59,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _temperature = newTemperature;
-      // ignore: lines_longer_than_80_chars
-      _lastUpdate = 'Останнє оновлення: ${DateTime.now().toString()} \nВідстань: ${_distance.toStringAsFixed(2)} м\nТемпература: ${_temperature.toStringAsFixed(1)}°C';
+      _lastUpdate = 'Останнє оновлення: ${DateTime.now()}\n'
+          'Відстань: ${_distance.toStringAsFixed(2)} м\n'
+          'Температура: ${_temperature.toStringAsFixed(1)}°C';
     });
     await prefs.setDouble('temperature', _temperature);
     await prefs.setString('lastUpdate', _lastUpdate);
@@ -108,6 +108,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   fontWeight: FontWeight.bold,
                   color: Colors.white, 
                 ),
+                textAlign: TextAlign.center,
               ),
               Slider(
                 value: _distance,
@@ -124,6 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
+                textAlign: TextAlign.center,
               ),
               Slider(
                 value: _temperature,
@@ -135,11 +137,12 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 20),
               Text(
-                _lastUpdate, // Оновлений текст з відстанню та температурою
+                _lastUpdate,
                 style: const TextStyle(
                   fontSize: 16,
-                  color: Colors.white, // Білий колір тексту
+                  color: Colors.white,
                 ),
+                textAlign: TextAlign.center,
               ),
             ],
           ),

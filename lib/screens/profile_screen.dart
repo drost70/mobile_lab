@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart'; 
+import 'package:flutter/material.dart';  
 import 'package:my_project/data/local_user_repository.dart';
 import 'package:my_project/data/user.dart';
 import 'package:my_project/data/user_repository.dart';
@@ -7,11 +7,10 @@ class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  // ignore: library_private_types_in_public_api
-  _ProfileScreenState createState() => _ProfileScreenState();
+  ProfileScreenState createState() => ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class ProfileScreenState extends State<ProfileScreen> {
   final UserRepository _userRepository = LocalUserRepository();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -26,6 +25,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadUserData() async {
     final user = await _userRepository.getUser();
+    if (!mounted) return;
     if (user != null) {
       setState(() {
         _nameController.text = user.name!;
@@ -43,9 +43,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     final user = await _userRepository.getUser();
+    if (!mounted) return;
     if (user != null) {
-      // ignore: lines_longer_than_80_chars
-      final updatedUser = User(email: user.email, password: user.password, name: newName);
+      final updatedUser = User(
+        email: user.email,
+        password: user.password,
+        name: newName,
+      );
       await _userRepository.saveUser(updatedUser);
 
       setState(() {
@@ -53,7 +57,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _errorMessage = null;
       });
 
-      // ignore: use_build_context_synchronously
+      if (!mounted) return;
       Navigator.pop(context, newName);
     }
   }
@@ -71,7 +75,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Видалити', style: TextStyle(color: Colors.red)),
+            child: const Text('Видалити',
+                style: TextStyle(color: Colors.red),),
           ),
         ],
       ),
@@ -79,7 +84,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (confirm == true) {
       await _userRepository.deleteUser();
-      // ignore: use_build_context_synchronously
+      if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
     }
   }
@@ -111,14 +116,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
               if (_errorMessage != null)
                 Padding(
                   padding: const EdgeInsets.all(8),
-                  // ignore: lines_longer_than_80_chars
-                  child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+                  child: Text(
+                    _errorMessage!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
                 ),
               if (_successMessage != null)
                 Padding(
                   padding: const EdgeInsets.all(8),
-                  // ignore: lines_longer_than_80_chars
-                  child: Text(_successMessage!, style: const TextStyle(color: Colors.green)),
+                  child: Text(
+                    _successMessage!,
+                    style: const TextStyle(color: Colors.green),
+                  ),
                 ),
               const SizedBox(height: 20),
               ElevatedButton(
@@ -128,8 +137,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 20),
               TextButton(
                 onPressed: _deleteAccount,
-                // ignore: lines_longer_than_80_chars
-                child: const Text('Видалити акаунт', style: TextStyle(color: Colors.red)),
+                child: const Text(
+                  'Видалити акаунт',
+                  style: TextStyle(color: Colors.red),
+                ),
               ),
             ],
           ),

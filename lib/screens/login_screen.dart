@@ -1,15 +1,14 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart'; 
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  // ignore: library_private_types_in_public_api
-  _LoginScreenState createState() => _LoginScreenState();
+  LoginScreenState createState() => LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
@@ -25,16 +24,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (savedEmail != null && savedPassword != null) {
         if (email == savedEmail && password == savedPassword) {
-          // ignore: use_build_context_synchronously
+          if (!mounted) return;
           Navigator.pushReplacementNamed(context, '/home');
         } else {
-          // ignore: use_build_context_synchronously
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Невірний email або пароль')),
           );
         }
       } else {
-        // ignore: use_build_context_synchronously
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Користувач не зареєстрований')),
         );
@@ -46,7 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (value == null || value.isEmpty) {
       return 'Email не може бути порожнім';
     }
-    if (!RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(value)) {
+    if (!RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\$').hasMatch(value)) {
       return 'Введіть коректний email';
     }
     return null;
