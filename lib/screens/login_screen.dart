@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart'; 
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/material.dart';
+import 'package:my_project/providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,27 +16,18 @@ class LoginScreenState extends State<LoginScreen> {
 
   void _login() async {
     if (_formKey.currentState!.validate()) {
-      final email = _emailController.text;
-      final password = _passwordController.text;
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final success = await authProvider.login(
+        _emailController.text,
+        _passwordController.text,
+      );
 
-      final prefs = await SharedPreferences.getInstance();
-      final savedEmail = prefs.getString('email');
-      final savedPassword = prefs.getString('password');
-
-      if (savedEmail != null && savedPassword != null) {
-        if (email == savedEmail && password == savedPassword) {
-          if (!mounted) return;
-          Navigator.pushReplacementNamed(context, '/home');
-        } else {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Невірний email або пароль')),
-          );
-        }
+      if (!mounted) return;
+      if (success) {
+        Navigator.pushReplacementNamed(context, '/home');
       } else {
-        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Користувач не зареєстрований')),
+          const SnackBar(content: Text('Невірний email або пароль')),
         );
       }
     }
@@ -45,15 +37,19 @@ class LoginScreenState extends State<LoginScreen> {
     if (value == null || value.isEmpty) {
       return 'Email не може бути порожнім';
     }
-    if (!RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\$').hasMatch(value)) {
+    if (!RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+        .hasMatch(value)) {
       return 'Введіть коректний email';
     }
     return null;
   }
 
   String? _validatePassword(String? value) {
-    if (value == null || value.length < 6) {
-      return 'Пароль має містити мінімум 6 символів';
+    if (value == null || value.isEmpty) {
+      return 'Пароль не може бути порожнім';
+    }
+    if (value.length < 6) {
+      return 'Пароль має містити не менше 6 символів';
     }
     return null;
   }
@@ -61,6 +57,9 @@ class LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Авторизація'),
+      ),
       body: DecoratedBox(
         decoration: const BoxDecoration(
           image: DecorationImage(
@@ -77,32 +76,31 @@ class LoginScreenState extends State<LoginScreen> {
               children: [
                 TextFormField(
                   controller: _emailController,
-                  decoration: const InputDecoration(labelText: 'Email'),
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                  ),
                   validator: _validateEmail,
                 ),
+                const SizedBox(height: 16),
                 TextFormField(
                   controller: _passwordController,
-                  decoration: const InputDecoration(labelText: 'Пароль'),
                   obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Пароль',
+                  ),
                   validator: _validatePassword,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: _login,
                   child: const Text('Увійти'),
                 ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text('У вас немає акаунту? '),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/register');
-                      },
-                      child: const Text('Зареєструватися'),
-                    ),
-                  ],
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/register');
+                  },
+                  child: const Text('Реєстрація'),
                 ),
               ],
             ),

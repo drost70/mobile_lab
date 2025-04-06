@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:my_project/data/local_user_repository.dart';
 import 'package:my_project/data/user.dart';
+import 'package:my_project/providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -14,19 +15,21 @@ class RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  final _userRepository = LocalUserRepository();
 
   void _register() async {
     if (_formKey.currentState!.validate()) {
-      final user = User(
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+      // Створення нового користувача
+      final newUser = User(
         email: _emailController.text,
         password: _passwordController.text,
         name: _nameController.text,
       );
-      await _userRepository.saveUser(user);
 
+      await authProvider.register(newUser);
       if (!mounted) return;
-      Navigator.pop(context);
+      Navigator.pushReplacementNamed(context, '/home');
     }
   }
 
@@ -42,8 +45,11 @@ class RegisterScreenState extends State<RegisterScreen> {
   }
 
   String? _validatePassword(String? value) {
-    if (value == null || value.length < 6) {
-      return 'Пароль має містити мінімум 6 символів';
+    if (value == null || value.isEmpty) {
+      return 'Пароль не може бути порожнім';
+    }
+    if (value.length < 6) {
+      return 'Пароль має містити не менше 6 символів';
     }
     return null;
   }
@@ -52,16 +58,15 @@ class RegisterScreenState extends State<RegisterScreen> {
     if (value == null || value.isEmpty) {
       return 'Ім\'я не може бути порожнім';
     }
-    if (RegExp(r'[0-9!@#\$%^&*(),.?":{}|<>]').hasMatch(value)) {
-      return 'Ім\'я не повинно містити цифри або спецсимволи';
-    }
     return null;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Реєстрація')),
+      appBar: AppBar(
+        title: const Text('Реєстрація'),
+      ),
       body: DecoratedBox(
         decoration: const BoxDecoration(
           image: DecorationImage(
@@ -74,24 +79,33 @@ class RegisterScreenState extends State<RegisterScreen> {
           child: Form(
             key: _formKey,
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 TextFormField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(labelText: 'Email'),
-                  validator: _validateEmail,
-                ),
-                TextFormField(
-                  controller: _passwordController,
-                  decoration: const InputDecoration(labelText: 'Пароль'),
-                  obscureText: true,
-                  validator: _validatePassword,
-                ),
-                TextFormField(
                   controller: _nameController,
-                  decoration: const InputDecoration(labelText: 'Ім\'я'),
+                  decoration: const InputDecoration(
+                    labelText: 'Ім\'я',
+                  ),
                   validator: _validateName,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                  ),
+                  validator: _validateEmail,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Пароль',
+                  ),
+                  validator: _validatePassword,
+                ),
+                const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: _register,
                   child: const Text('Зареєструватися'),

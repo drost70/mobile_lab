@@ -1,7 +1,6 @@
-import 'package:flutter/material.dart';  
-import 'package:my_project/data/local_user_repository.dart';
-import 'package:my_project/data/user.dart';
-import 'package:my_project/data/user_repository.dart';
+import 'package:flutter/material.dart';
+import 'package:my_project/providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -11,97 +10,56 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class ProfileScreenState extends State<ProfileScreen> {
-  final UserRepository _userRepository = LocalUserRepository();
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  String? _errorMessage;
-  String? _successMessage;
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _loadUserData();
-  }
-
-  Future<void> _loadUserData() async {
-    final user = await _userRepository.getUser();
-    if (!mounted) return;
+    final user = Provider.of<AuthProvider>(context, listen: false).user;
     if (user != null) {
-      setState(() {
-        _nameController.text = user.name!;
-        _emailController.text = user.email;
-      });
+      _nameController.text = user.name ?? '';
+      _emailController.text = user.email;
     }
   }
 
   Future<void> _saveChanges() async {
-    final newName = _nameController.text.trim();
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final updatedName = _nameController.text;
+    await authProvider.updateName(updatedName);
 
-    if (newName.isEmpty) {
-      setState(() => _errorMessage = 'Ім\'я не може бути порожнім');
-      return;
-    }
-
-    final user = await _userRepository.getUser();
+    // Ensure that the widget is still mounted before navigating
     if (!mounted) return;
-    if (user != null) {
-      final updatedUser = User(
-        email: user.email,
-        password: user.password,
-        name: newName,
-      );
-      await _userRepository.saveUser(updatedUser);
-
-      setState(() {
-        _successMessage = 'Дані оновлено!';
-        _errorMessage = null;
-      });
-
-      if (!mounted) return;
-      Navigator.pop(context, newName);
-    }
+    Navigator.pop(context, updatedName);
   }
 
-  Future<void> _deleteAccount() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Видалити акаунт?'),
-        content: const Text('Цю дію не можна скасувати. Ви впевнені?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Скасувати'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Видалити',
-                style: TextStyle(color: Colors.red),),
-          ),
-        ],
-      ),
-    );
+  void _deleteAccount() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    await authProvider.deleteAccount();
 
-    if (confirm == true) {
-      await _userRepository.deleteUser();
-      if (!mounted) return;
-      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-    }
+    // Ensure that the widget is still mounted before navigating
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, '/login');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Ваш акаунт було видалено')),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Профіль')),
+      appBar: AppBar(
+        title: const Text('Профіль'),
+      ),
       body: DecoratedBox(
         decoration: const BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('assets/images/REG.jpg'),
+            image: AssetImage('assets/images/greenhouse.jpg'),
             fit: BoxFit.cover,
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           child: Column(
             children: [
               TextField(
@@ -113,34 +71,16 @@ class ProfileScreenState extends State<ProfileScreen> {
                 decoration: const InputDecoration(labelText: 'Email'),
                 readOnly: true,
               ),
-              if (_errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Text(
-                    _errorMessage!,
-                    style: const TextStyle(color: Colors.red),
-                  ),
-                ),
-              if (_successMessage != null)
-                Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Text(
-                    _successMessage!,
-                    style: const TextStyle(color: Colors.green),
-                  ),
-                ),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _saveChanges,
                 child: const Text('Зберегти зміни'),
               ),
               const SizedBox(height: 20),
-              TextButton(
+              ElevatedButton(
                 onPressed: _deleteAccount,
-                child: const Text(
-                  'Видалити акаунт',
-                  style: TextStyle(color: Colors.red),
-                ),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Видалити акаунт'),
               ),
             ],
           ),

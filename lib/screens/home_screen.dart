@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart'; 
-import 'package:my_project/data/local_user_repository.dart';
-import 'package:my_project/data/user_repository.dart';
+import 'package:flutter/material.dart';
+import 'package:my_project/providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -11,8 +11,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class HomeScreenState extends State<HomeScreen> {
-  final UserRepository _userRepository = LocalUserRepository();
-  String _userName = 'Користувач';
   double _distance = 10;
   double _temperature = 20;
   String _lastUpdate = 'Ніколи';
@@ -31,15 +29,18 @@ class HomeScreenState extends State<HomeScreen> {
       _lastUpdate = prefs.getString('lastUpdate') ?? 'Ніколи';
     });
 
-    final user = await _userRepository.getUser();
+    if (!mounted) return;
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final user = authProvider.user;
     if (user != null) {
-      setState(() {
-        _userName = user.name!;
-      });
+      setState(() {});
     }
   }
 
   Future<void> _logout() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    await authProvider.logout();
+    if (!mounted) return;
     Navigator.pushReplacementNamed(context, '/login');
   }
 
@@ -69,18 +70,19 @@ class HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final userName = Provider.of<AuthProvider>(context).user?.name ??
+    'Користувач';
     return Scaffold(
       appBar: AppBar(
-        title: Text('Привіт, $_userName!'),
+        title: Text('Привіт, $userName!'),
         actions: [
           IconButton(
             icon: const Icon(Icons.account_circle),
             onPressed: () async {
+              if (!mounted) return;
               final updatedName = await Navigator.pushNamed(context, '/profile');
               if (updatedName != null && updatedName is String) {
-                setState(() {
-                  _userName = updatedName;
-                });
+                setState(() {});
               }
             },
           ),
@@ -93,7 +95,7 @@ class HomeScreenState extends State<HomeScreen> {
       body: DecoratedBox(
         decoration: const BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('assets/images/REG.jpg'),  
+            image: AssetImage('assets/images/REG.jpg'),
             fit: BoxFit.cover,
           ),
         ),
@@ -104,9 +106,9 @@ class HomeScreenState extends State<HomeScreen> {
               Text(
                 'Відстань утеплення теплиці: ${_distance.toStringAsFixed(2)} м',
                 style: const TextStyle(
-                  fontSize: 24, 
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white, 
+                  color: Colors.white,
                 ),
                 textAlign: TextAlign.center,
               ),
