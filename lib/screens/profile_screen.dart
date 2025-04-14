@@ -28,7 +28,6 @@ class ProfileScreenState extends State<ProfileScreen> {
     final updatedName = _nameController.text;
     await authProvider.updateName(updatedName);
 
-    // Ensure that the widget is still mounted before navigating
     if (!mounted) return;
     Navigator.pop(context, updatedName);
   }
@@ -37,7 +36,6 @@ class ProfileScreenState extends State<ProfileScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     await authProvider.deleteAccount();
 
-    // Ensure that the widget is still mounted before navigating
     if (!mounted) return;
     Navigator.pushReplacementNamed(context, '/login');
     ScaffoldMessenger.of(context).showSnackBar(

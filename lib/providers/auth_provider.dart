@@ -27,6 +27,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> logout() async {
+    await _userRepository.deleteUser();
     _user = null;
     notifyListeners();
   }

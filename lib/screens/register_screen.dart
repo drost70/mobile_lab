@@ -20,7 +20,6 @@ class RegisterScreenState extends State<RegisterScreen> {
     if (_formKey.currentState!.validate()) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-      // Створення нового користувача
       final newUser = User(
         email: _emailController.text,
         password: _passwordController.text,
