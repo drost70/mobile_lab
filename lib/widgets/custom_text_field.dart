@@ -3,32 +3,27 @@ import 'package:flutter/material.dart';
 class CustomTextField extends StatelessWidget {
   final String hint;
   final bool obscureText;
+  final TextEditingController? controller;
 
   const CustomTextField({
-    required this.hint,
-    super.key, 
+    required this.hint, super.key,
     this.obscureText = false,
+    this.controller,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: TextField(
+        controller: controller,
         obscureText: obscureText,
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(color: Colors.white),
-          enabledBorder: OutlineInputBorder(
-            borderSide: const BorderSide(color: Colors.white),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderSide: const BorderSide(color: Colors.white),
-            borderRadius: BorderRadius.circular(12),
-          ),
+          border: const OutlineInputBorder(),
+          filled: true,
+          fillColor: Colors.white,
         ),
-        style: const TextStyle(color: Colors.white),
       ),
     );
   }
