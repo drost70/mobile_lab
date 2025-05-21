@@ -3,7 +3,9 @@ import 'package:my_project/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final bool isConnected;
+
+  const LoginScreen({required this.isConnected, super.key});
 
   @override
   LoginScreenState createState() => LoginScreenState();
@@ -15,6 +17,13 @@ class LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
 
   void _login() async {
+    if (!widget.isConnected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Відсутнє з\'єднання з Інтернетом')),
+      );
+      return;
+    }
+
     if (_formKey.currentState!.validate()) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final success = await authProvider.login(
