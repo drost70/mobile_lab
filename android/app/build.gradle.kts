@@ -19,12 +19,12 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.my_project"
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
-    }
+    applicationId = "com.example.my_project"
+    minSdk = 21
+    targetSdk = 33
+    versionCode = flutter.versionCode
+    versionName = flutter.versionName
+}
 
     buildTypes {
         release {
