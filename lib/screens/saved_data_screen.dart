@@ -1,49 +1,50 @@
 import 'package:flutter/material.dart';
-import 'package:my_project/services/serial_service.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:my_project/blocs/saved_data/saved_data_cubit.dart';
+import 'package:my_project/blocs/saved_data/saved_data_state.dart';
 
-class SavedDataScreen extends StatefulWidget {
+class SavedDataScreen extends StatelessWidget {
   const SavedDataScreen({super.key});
 
   @override
-  SavedDataScreenState createState() => SavedDataScreenState();
-}
-
-class SavedDataScreenState extends State<SavedDataScreen> {
-  String _savedData = 'Дані відсутні';
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSavedData();
-  }
-
-  Future<void> _loadSavedData() async {
-    final data = await SerialService.instance.readSavedData();
-    if (!mounted) return;
-    setState(() {
-      _savedData = data ?? 'Дані не знайдені або помилка читання';
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Збережені дані'),
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(
-            _savedData,
-            style: const TextStyle(fontSize: 18),
+    return BlocProvider(
+      create: (_) => SavedDataCubit()..loadSavedData(),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Збережені дані'),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: BlocBuilder<SavedDataCubit, SavedDataState>(
+              builder: (context, state) {
+                if (state is SavedDataLoading) {
+                  return const CircularProgressIndicator();
+                } else if (state is SavedDataLoaded) {
+                  return Text(
+                    state.data,
+                    style: const TextStyle(fontSize: 18),
+                  );
+                } else if (state is SavedDataError) {
+                  return Text(
+                    state.message,
+                    style: const TextStyle(fontSize: 18, color: Colors.red),
+                  );
+                } else {
+                  return const Text('Дані відсутні');
+                }
+              },
+            ),
           ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _loadSavedData,
-        tooltip: 'Оновити',
-        child: const Icon(Icons.refresh),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            context.read<SavedDataCubit>().loadSavedData();
+          },
+          tooltip: 'Оновити',
+          child: const Icon(Icons.refresh),
+        ),
       ),
     );
   }
