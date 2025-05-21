@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
-import 'package:my_project/providers/auth_provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:my_project/blocs/auth/auth_cubit.dart';
+import 'package:my_project/blocs/auth/auth_state.dart';
 import 'package:my_project/screens/home_screen.dart';
 import 'package:my_project/screens/login_screen.dart';
 import 'package:my_project/screens/profile_screen.dart';
@@ -10,7 +12,6 @@ import 'package:my_project/screens/register_screen.dart';
 import 'package:my_project/screens/scan_screen.dart';
 import 'package:my_project/screens/serial_port_settings_screen.dart';
 import 'package:my_project/services/internet_service.dart';
-import 'package:provider/provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -21,8 +22,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => AuthProvider()..loadUser(),
+    return BlocProvider(
+      create: (_) => AuthCubit()..loadUser(),
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Smart Greenhouse',
@@ -56,11 +57,8 @@ class RootScreenState extends State<RootScreen> {
   @override
   void initState() {
     super.initState();
-
-    _subscription = _internetService.connectivityStream.listen
-    ((ConnectivityResult result) {
+    _subscription = _internetService.connectivityStream.listen((result) {
       if (!mounted) return;
-
       setState(() {
         _isConnected = result != ConnectivityResult.none;
       });
@@ -81,10 +79,14 @@ class RootScreenState extends State<RootScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AuthProvider>(
-      builder: (context, authProvider, _) {
-        if (authProvider.user != null) {
+    return BlocBuilder<AuthCubit, AuthState>(
+      builder: (context, state) {
+        if (state is AuthAuthenticated) {
           return const HomeScreen();
+        } else if (state is AuthLoading) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         } else {
           return LoginScreen(isConnected: _isConnected);
         }

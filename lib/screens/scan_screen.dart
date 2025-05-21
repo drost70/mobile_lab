@@ -19,7 +19,7 @@ class ScanScreen extends StatelessWidget {
         if (login != null && password != null) {
           Navigator.pushReplacementNamed(
             context,
-            '/last_message',
+            '/serial_settings',
             arguments: {
               'login': login,
               'password': password,
