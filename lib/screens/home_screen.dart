@@ -1,9 +1,13 @@
 import 'dart:async';
+import 'dart:isolate';
+
 import 'package:flutter/material.dart';
 import 'package:my_project/providers/auth_provider.dart';
-import 'package:my_project/services/mqtt_service.dart';
+import 'package:my_project/screens/scan_screen.dart';
+import 'package:my_project/services/serial_service.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:usb_serial/usb_serial.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,39 +20,75 @@ class HomeScreenState extends State<HomeScreen> {
   double _distance = 10;
   double _temperature = 20;
   String _lastUpdate = 'Ніколи';
-  final MqttService _mqttService = MqttService();
+
+  List<UsbDevice> availablePorts = [];
+  UsbDevice? selectedPort;
+  int? selectedDeviceId;
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
-    _startMqttUpdates();
+    _loadAvailablePorts();
   }
 
-  @override
-  void dispose() {
-    _mqttService.disconnect();
-    super.dispose();
+  Future<void> _loadAvailablePorts() async {
+    final ports = await SerialService.instance.getAvailableDevices();
+
+    for (var device in ports) {
+      debugPrint(
+        'USB Device found: '
+        'Name=${device.deviceName}, '
+        'VendorID=${device.vid}, '
+        'ProductID=${device.pid}, '
+        'DeviceID=${device.deviceId}',
+      );
+    }
+
+    setState(() {
+      availablePorts = ports;
+      if (availablePorts.isNotEmpty) {
+        selectedPort = availablePorts.first;
+        selectedDeviceId = selectedPort!.deviceId;
+        SerialService.instance.setPort(selectedPort!);
+      }
+    });
   }
 
-  void _startMqttUpdates() {
-    _mqttService.onTemperatureReceived = (String value) {
-      final double newTemperature = double.tryParse(value) ?? 0.0;
-      setState(() {
-        _temperature = newTemperature;
-      });
-      _saveToPrefs();
-    };
+  Future<void> _checkWithIsolate(double temperature, double distance) async {
+    final receivePort = ReceivePort();
+    await Isolate.spawn(
+      isolateSensorCheck,
+      [receivePort.sendPort, temperature, distance],
+    );
+    final result = await receivePort.first;
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(result.toString()),
+        backgroundColor: Colors.green.shade700,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
 
-    _mqttService.onDistanceReceived = (String value) {
-      final double newDistance = double.tryParse(value) ?? 0.0;
-      setState(() {
-        _distance = newDistance;
-      });
-      _saveToPrefs();
-    };
+  static void isolateSensorCheck(List<dynamic> args) {
+    final SendPort sendPort = args[0] as SendPort;
+    final double temperature = args[1] as double;
+    final double distance = args[2] as double;
 
-    _mqttService.connect();
+    String message = '✅ Усі дані в нормі.';
+    if (temperature < 10) {
+      message = '❄️ Температура занизька!';
+    } else if (temperature > 35) {
+      message = '🔥 Температура зависока!';
+    }
+
+    if (distance < 3) {
+      message += '\n⚠️ Відстань занадто мала!';
+    }
+
+    sendPort.send(message);
   }
 
   Future<void> _saveToPrefs() async {
@@ -80,32 +120,31 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _logout() async {
-  final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Підтвердження'),
+        content: const Text('Ви впевнені, що хочете вийти?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Скасувати'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Вийти'),
+          ),
+        ],
+      ),
+    );
 
-  final confirm = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Підтвердження'),
-      content: const Text('Ви впевнені, що хочете вийти?'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text('Скасувати'),
-        ),
-        ElevatedButton(
-          onPressed: () => Navigator.pop(context, true),
-          child: const Text('Вийти'),
-        ),
-      ],
-    ),
-  );
-
-  if (confirm == true) {
-    await authProvider.logout();
-    if (!mounted) return;
-    Navigator.pushReplacementNamed(context, '/login');
+    if (confirm == true && mounted) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      await authProvider.logout();
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/login');
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -141,40 +180,105 @@ class HomeScreenState extends State<HomeScreen> {
           ),
         ),
         child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Відстань утеплення теплиці:\n'
-                '${_distance.toStringAsFixed(2)} м',
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Відстань утеплення теплиці:\n'
+                  '${_distance.toStringAsFixed(2)} м',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Температура теплиці:\n'
-                '${_temperature.toStringAsFixed(1)}°C',
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                const SizedBox(height: 20),
+                Text(
+                  'Температура теплиці:\n'
+                  '${_temperature.toStringAsFixed(1)}°C',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              Text(
-                _lastUpdate,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.white,
+                const SizedBox(height: 20),
+                Text(
+                  _lastUpdate,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+                const SizedBox(height: 30),
+                const Text(
+                  'Оберіть COM-порт:',
+                  style: TextStyle(color: Colors.white, fontSize: 18),
+                ),
+                DropdownButton<int>(
+                  dropdownColor: Colors.black87,
+                  value: selectedDeviceId,
+                  hint: const Text(
+                    'Оберіть порт',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  items: availablePorts.map((device) {
+                    return DropdownMenuItem(
+                      value: device.deviceId,
+                      child: Text(
+                        device.deviceName,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (deviceId) {
+                    final selected = availablePorts
+                        .firstWhere((d) => d.deviceId == deviceId);
+                    setState(() {
+                      selectedDeviceId = deviceId;
+                      selectedPort = selected;
+                      SerialService.instance.setPort(selected);
+                    });
+                  },
+                ),
+                if (availablePorts.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 12),
+                    child: Text(
+                      'Порти не знайдено. Підключіть USB-пристрій.',
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
+                  ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.qr_code_scanner),
+                  label: const Text('Сканувати QR-код'),
+                  onPressed: availablePorts.isEmpty
+                      ? null
+                      : () {
+                          Navigator.push<Widget>(
+                            context,
+                            MaterialPageRoute<Widget>(
+                              builder: (_) => const ScanScreen(),
+                            ),
+                          );
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurple,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    textStyle: const TextStyle(fontSize: 18),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
