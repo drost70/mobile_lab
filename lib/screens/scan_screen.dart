@@ -26,7 +26,7 @@ class ScanScreen extends StatelessWidget {
             },
           );
         } else {
-          throw FormatException('Відсутні логін або пароль');
+          throw const FormatException('Відсутні логін або пароль');
         }
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
