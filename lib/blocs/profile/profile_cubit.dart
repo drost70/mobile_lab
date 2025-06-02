@@ -11,23 +11,13 @@ class ProfileCubit extends Cubit<ProfileState> {
   ProfileCubit({required this.authProvider}) : super(ProfileInitial());
 
   void loadUser() {
-    final user = authProvider.user;
-    if (user != null) {
-      emit(ProfileLoaded(user));
-    } else {
-      emit(const ProfileError('Користувача не знайдено'));
-    }
+    _emitUserOrError();
   }
 
   Future<void> updateName(String name) async {
     try {
       await authProvider.updateName(name);
-      final user = authProvider.user;
-      if (user != null) {
-        emit(ProfileLoaded(user));
-      } else {
-        emit(const ProfileError('Користувача не знайдено після оновлення'));
-      }
+      _emitUserOrError(errorMessage: 'Користувача не знайдено після оновлення');
     } catch (e) {
       emit(const ProfileError('Помилка оновлення імені'));
     }
@@ -39,6 +29,15 @@ class ProfileCubit extends Cubit<ProfileState> {
       emit(ProfileDeleted());
     } catch (e) {
       emit(const ProfileError('Помилка видалення акаунту'));
+    }
+  }
+
+  void _emitUserOrError({String errorMessage = 'Користувача не знайдено'}) {
+    final user = authProvider.user;
+    if (user != null) {
+      emit(ProfileLoaded(user));
+    } else {
+      emit(ProfileError(errorMessage));
     }
   }
 }

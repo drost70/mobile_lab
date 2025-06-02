@@ -5,13 +5,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:usb_serial/usb_serial.dart';
 
 class SerialCubit extends Cubit<SerialState> {
-  SerialCubit() : super(SerialInitial());
+  final SerialService serialService;
+  final SharedPreferences prefs;
+
+  SerialCubit({
+    required this.serialService,
+    required this.prefs,
+  }) : super(SerialInitial());
 
   Future<void> loadDevices() async {
     emit(SerialLoading());
     try {
-      final devices = await SerialService.instance.getAvailableDevices();
-      final prefs = await SharedPreferences.getInstance();
+      final devices = await serialService.getAvailableDevices();
       final savedId = prefs.getInt('serial_device_id');
 
       UsbDevice? selectedDevice;
@@ -43,19 +48,17 @@ class SerialCubit extends Cubit<SerialState> {
     if (state is SerialLoaded) {
       final currentState = state as SerialLoaded;
       final device = currentState.selectedDevice;
-      if (device == null) return;
+      if (device == null || device.deviceId == null) return;
 
       try {
-        final prefs = await SharedPreferences.getInstance();
         await prefs.setInt('serial_device_id', device.deviceId!);
+        final success = await serialService.setPort(device);
 
-        final success = await SerialService.instance.setPort(device);
+        final message = success
+            ? 'Порт збережено й активовано'
+            : 'Не вдалося відкрити порт';
 
-        if (success) {
-          emit(currentState.copyWith(message: 'Порт збережено й активовано'));
-        } else {
-          emit(currentState.copyWith(message: 'Не вдалося відкрити порт'));
-        }
+        emit(currentState.copyWith(message: message));
       } catch (e) {
         emit(SerialError('Помилка збереження порту: $e'));
       }

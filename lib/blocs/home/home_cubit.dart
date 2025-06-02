@@ -8,9 +8,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:usb_serial/usb_serial.dart';
 
 class HomeCubit extends Cubit<HomeState> {
-  HomeCubit() : super(const HomeState()) {
-    loadUserData();
-    loadAvailablePorts();
+  HomeCubit() : super(const HomeState());
+
+  /// Ініціалізація даних при старті
+  Future<void> init() async {
+    await loadUserData();
+    await loadAvailablePorts();
   }
 
   Future<void> loadUserData() async {
@@ -83,8 +86,6 @@ class HomeCubit extends Cubit<HomeState> {
 
     sendPort.send(message);
   }
-
-  // Додатково: методи для оновлення температури/відстані
 
   void updateDistance(double distance) {
     emit(state.copyWith(distance: distance));
