@@ -28,16 +28,17 @@ class _SerialPortSettingsScreenState extends State<SerialPortSettingsScreen> {
     return FutureBuilder<SharedPreferences>(
       future: _prefsFuture,
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
+        if (!snapshot.hasData || snapshot.data == null) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
         final prefs = snapshot.data!;
+
         return BlocProvider(
           create: (_) => SerialCubit(
-            serialService: SerialService.instance, // твій сервіс
+            serialService: SerialService.instance,
             prefs: prefs,
           )..loadDevices(),
           child: Scaffold(
@@ -46,10 +47,13 @@ class _SerialPortSettingsScreenState extends State<SerialPortSettingsScreen> {
               padding: const EdgeInsets.all(16),
               child: BlocConsumer<SerialCubit, SerialState>(
                 listener: (context, state) {
-                  if (state is SerialLoaded && state.message != null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(state.message!)),
-                    );
+                  if (state is SerialLoaded) {
+                    final message = state.message;
+                    if (message != null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(message)),
+                      );
+                    }
                   } else if (state is SerialError) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text(state.error)),
@@ -70,8 +74,8 @@ class _SerialPortSettingsScreenState extends State<SerialPortSettingsScreen> {
                             return DropdownMenuItem(
                               value: device,
                               child: Text(
-                                  '${device.productName} (${device.deviceId
-                                  })',),
+                                '${device.productName} (${device.deviceId})',
+                              ),
                             );
                           }).toList(),
                           onChanged: (device) {

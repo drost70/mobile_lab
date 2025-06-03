@@ -9,7 +9,13 @@ class AuthCubit extends Cubit<AuthState> {
 
   AuthCubit({UserRepository? userRepository})
       : _userRepository = userRepository ?? LocalUserRepository(),
-        super(AuthInitial());
+        super(AuthInitial()) {
+    _init();
+  }
+
+  void _init() {
+    loadUser();
+  }
 
   Future<void> loadUser() async {
     emit(AuthLoading());
@@ -30,9 +36,7 @@ class AuthCubit extends Cubit<AuthState> {
     emit(AuthLoading());
     try {
       final user = await _userRepository.getUser();
-      if (user != null &&
-          user.email == email &&
-          user.password == password) {
+      if (user != null && user.email == email && user.password == password) {
         emit(AuthAuthenticated(user));
       } else {
         emit(AuthError('Невірний email або пароль'));

@@ -45,23 +45,26 @@ class SerialCubit extends Cubit<SerialState> {
   }
 
   Future<void> saveSelectedDevice() async {
-    if (state is SerialLoaded) {
-      final currentState = state as SerialLoaded;
-      final device = currentState.selectedDevice;
-      if (device == null || device.deviceId == null) return;
+  if (state is SerialLoaded) {
+    final currentState = state as SerialLoaded;
+    final device = currentState.selectedDevice;
 
-      try {
-        await prefs.setInt('serial_device_id', device.deviceId!);
-        final success = await serialService.setPort(device);
+    if (device == null) return;
+    final deviceId = device.deviceId;
+    if (deviceId == null) return;
 
-        final message = success
-            ? 'Порт збережено й активовано'
-            : 'Не вдалося відкрити порт';
+    try {
+      await prefs.setInt('serial_device_id', deviceId);
+      final success = await serialService.setPort(device);
 
-        emit(currentState.copyWith(message: message));
-      } catch (e) {
-        emit(SerialError('Помилка збереження порту: $e'));
-      }
+      final message = success
+          ? 'Порт збережено й активовано'
+          : 'Не вдалося відкрити порт';
+
+      emit(currentState.copyWith(message: message));
+    } catch (e) {
+      emit(SerialError('Помилка збереження порту: $e'));
     }
+  }
   }
 }
